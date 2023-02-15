@@ -20,6 +20,7 @@ public:
     void sort() {
         int currentInt;
         int partitionCount = 0;
+        if(maxIntsInMemory < 1) return;
         // Read the input tape and divide it into partitions
         while (!inputTape.endOfFile()) {
             currentInt = inputTape.read();
@@ -38,7 +39,7 @@ public:
             partition.clear();
         }
         // Combine all the tapes
-        mergePartitions(partitionCount);
+        mergePartitions();
     }
 
 private:
@@ -65,50 +66,30 @@ private:
         return true;
     }
 
-    void mergePartitions(int partitionCount) {
+    void mergePartitions() {
         int partitionIndex = 0;
-        while (tempTapes.size() > 1) {
-            std::string tempFilename = "../tmp/temp_%d.txt";
-            tempFilename = std::regex_replace(tempFilename, std::regex(R"(%d)"), std::to_string(partitionCount));
-            partitionCount++;
-            TapeDevice *tempTape = new FileTapeDevice(tempFilename.c_str(), READ_DELAY, WRITE_DELAY, REWIND_DELAY, SHIFT_DELAY);
-            if(!tempTape->open("w+")) return;
-            while (!tempTapes[partitionIndex]->endOfFile() && !tempTapes[partitionIndex + 1]->endOfFile()) {
+        // Go through all temporary tapes
+        while (!tempTapes.empty()) {
+            while (!tempTapes[partitionIndex]->endOfFile() && !outputTape.endOfFile()) {
+                // Compare the values on the temporary and output tape
                 int a = tempTapes[partitionIndex]->read();
-                int b = tempTapes[partitionIndex + 1]->read();
+                int b = outputTape.read();
                 if (a < b) {
-                    tempTape->write(a);
+                    outputTape.offsetInsert(a);
                     tempTapes[partitionIndex]->shiftRight();
                 } else {
-                    tempTape->write(b);
-                    tempTapes[partitionIndex + 1]->shiftRight();
+                    outputTape.shiftRight();
                 }
-                tempTape->shiftRight();
             }
+            // Write the remanining values from the temporary tape
             while (!tempTapes[partitionIndex]->endOfFile()) {
                 int a = tempTapes[partitionIndex]->read();
                 tempTapes[partitionIndex]->shiftRight();
-                tempTape->write(a);
-                tempTape->shiftRight();
-            }
-            while (!tempTapes[partitionIndex + 1]->endOfFile()) {
-                int a = tempTapes[partitionIndex + 1]->read();
-                tempTapes[partitionIndex + 1]->shiftRight();
-                tempTape->write(a);
-                tempTape->shiftRight();
-            }
-            tempTape->rewind();
-            tempTapes.push_back(tempTape);
-            tempTapes.erase(tempTapes.begin(), tempTapes.begin()+2);
-        }
-        if (!tempTapes.empty()) {
-            int currentInt;
-            while (!tempTapes[0]->endOfFile()) {
-                currentInt = tempTapes[0]->read();
-                tempTapes[0]->shiftRight();
-                outputTape.write(currentInt);
+                outputTape.write(a);
                 outputTape.shiftRight();
             }
+            outputTape.rewind();
+            tempTapes.erase(tempTapes.begin(), tempTapes.begin()+1);
         }
     }
 };

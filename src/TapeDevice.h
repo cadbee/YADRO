@@ -20,6 +20,8 @@ public:
     virtual void shiftRight() = 0;
 
     virtual void rewind() = 0;
+
+    virtual void offsetInsert(int item) = 0;
 };
 
 #endif //YADRO_TEST_TAPEDEVICE_H
